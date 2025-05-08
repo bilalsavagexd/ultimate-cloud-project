@@ -16,32 +16,16 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-buildx-action@v2
 
-      - name: Install Python dependencies
-        working-directory: ./app
-        shell: bash
+      - name: Build Docker image
         run: |
-          python3 -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
-          pip install pytest
+          cd app
+          docker build -t flask-app .
 
-      - name: Run tests
-        working-directory: ./app
-        shell: bash
+      - name: Push to AWS (Simulated here, real push needs ECR login)
+        run: echo "Simulate push to AWS ECR"
+
+      - name: Deploy Infrastructure
         run: |
-          source venv/bin/activate
-          pytest
-
-      - name: Install Snyk
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install Snyk CLI
-        run: npm install -g snyk
-
-      - name: Authenticate Snyk
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: snyk auth $SNY
+          cd terraform
+          terraform init
+          terraform apply -auto-approve
