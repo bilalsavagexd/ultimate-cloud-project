@@ -1,0 +1,58 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Install Python dependencies
+        working-directory: ./app
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run tests
+        working-directory: ./app
+        run: |
+          source venv/bin/activate
+          pytest
+
+      - name: Install Snyk
+        run: |
+          npm install -g snyk
+
+      - name: Authenticate Snyk
+        run: snyk auth ${{ secrets.SNYK_TOKEN }}
+
+      - name: Snyk scan Python dependencies
+        working-directory: ./app
+        run: snyk test --file=requirements.txt --package-manager=pip
+
+      - name: Build Docker image
+        working-directory: ./app
+        run: docker build -t flask-app .
+
+      - name: Snyk scan Docker image
+        run: snyk container test flask-app
+
+      - name: Simulate push to AWS ECR
+        run: echo "Simulate push to AWS ECR"
+
+      - name: Deploy Infrastructure
+        working-directory: ./terraform
+        run: |
+          terraform init
+          terraform apply -auto-approve
