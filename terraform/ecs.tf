@@ -1,10 +1,9 @@
-<<<<<<< HEAD
 resource "aws_ecs_cluster" "main" {
   name = "ultimate-cloud-cluster"
 }
 
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "ecsTaskExecutionRole2"
+  name = "ecsTaskExecutionRole-${formatdate("YYYYMMDDHHmmss", timestamp())}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -25,7 +24,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
 
 # ✅ CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "ecs_log_group" {
-  name              = "/ecs/ultimate-cloud-project"
+  name              = "/ecs/ultimate-cloud-project-${formatdate("YYYYMMDDHHmmss", timestamp())}"
   retention_in_days = 7  # Optional: keep logs for 7 days
 }
 
@@ -62,7 +61,7 @@ resource "aws_ecs_task_definition" "flask_app" {
 }
 
 resource "aws_security_group" "ecs_sg" {
-  name        = "ecs-security-group"
+  name        = "ecs-security-group-${formatdate("YYYYMMDDHHmmss", timestamp())}"
   description = "Allow inbound access to Flask app on port 5000"
   vpc_id      = "vpc-01e3344c532f1909b"
 
@@ -95,65 +94,3 @@ resource "aws_ecs_service" "flask_app" {
     security_groups  = [aws_security_group.ecs_sg.id]
   }
 }
-=======
-resource "aws_ecs_cluster" "main" {
-  name = "ultimate-cloud-cluster"
-}
-
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "ecsTaskExecutionRole"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Principal = {
-        Service = "ecs-tasks.amazonaws.com"
-      }
-      Effect = "Allow"
-      Sid = ""
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-resource "aws_ecs_task_definition" "flask_app" {
-  family                   = "flask-app-task"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = "256"
-  memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-
-  container_definitions = jsonencode([
-    {
-      name      = "flask-app"
-      image     = "982534396561.dkr.ecr.us-east-1.amazonaws.com/flask-app:latest"
-      portMappings = [
-        {
-          containerPort = 5000
-          hostPort      = 5000
-          protocol      = "tcp"
-        }
-      ]
-    }
-  ])
-}
-
-resource "aws_ecs_service" "flask_app" {
-  name            = "flask-app-service"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.flask_app.arn
-  launch_type     = "FARGATE"
-  desired_count   = 1
-
-  network_configuration {
-    subnets          = [aws_subnet.public.id]
-    security_groups  = [aws_security_group.allow_http.id]
-    assign_public_ip = true
-  }
-}
->>>>>>> adddd9c236f0de6cd5aa034f8a9a1d43aed864fb
